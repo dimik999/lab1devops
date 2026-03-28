@@ -67,25 +67,21 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+  # Деплой на машину с self-hosted runner (WSL/ПК с Docker). Из облака GitHub до внутреннего IP WSL по SSH не достучаться.
   deploy:
     needs: build-and-push
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     if: github.event_name != 'pull_request'
+    permissions:
+      contents: read
+      packages: read
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          port: ${{ secrets.SERVER_PORT }}
-          script: |
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
-            docker pull ${{ env.REGISTRY }}/${{ github.repository_owner }}/lab1-app:latest
-            docker stop lab1-app 2>/dev/null || true
-            docker rm lab1-app 2>/dev/null || true
-            docker run -d --name lab1-app -p 5000:5000 --restart unless-stopped ${{ env.REGISTRY }}/${{ github.repository_owner }}/lab1-app:latest
+      - name: Deploy with Docker on runner
         env:
           REGISTRY: ${{ env.REGISTRY }}
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login "$REGISTRY" -u "${{ github.actor }}" --password-stdin
+          docker pull "${REGISTRY}/${{ github.repository_owner }}/lab1-app:latest"
+          docker stop lab1-app 2>/dev/null || true
+          docker rm lab1-app 2>/dev/null || true
+          docker run -d --name lab1-app -p 5000:5000 --restart unless-stopped "${REGISTRY}/${{ github.repository_owner }}/lab1-app:latest"

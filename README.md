@@ -32,22 +32,22 @@ docker run -p 5000:5000 lab1-app
 
 1. **test** — запускает тесты (pytest)
 2. **build-and-push** — собирает Docker-образ и публикует в GitHub Container Registry (ghcr.io)
-3. **deploy** — деплоит на сервер по SSH (останавливает старый контейнер, подтягивает новый образ, запускает контейнер)
+3. **deploy** — выполняется на **self-hosted runner** (например WSL на вашем ПК): локально вызываются `docker login`, `pull` и `run`. Облачный раннер не может подключиться по SSH к внутреннему IP WSL (`172.x`), поэтому деплой перенесён на вашу машину.
 
-### Секреты в GitHub
+### Деплой только с WSL (без VPS)
 
-В настройках репозитория (Settings → Secrets and variables → Actions) добавьте:
+1. В WSL установите **Docker** (или включите интеграцию **Docker Desktop** с этим дистрибутивом), проверьте: `docker ps`.
+2. Зарегистрируйте **self-hosted runner** по инструкции GitHub: **Settings → Actions → Runners → New self-hosted runner** (Linux x64), папка в `~`, не в `system32`.
+3. После `./config.sh` держите агент запущенным: `./run.sh` (пока окно открыто, runner в сети).
+4. Пуш в `main`/`master`: job **deploy** пойдёт на ваш runner и поднимет контейнер на **порту 5000** в WSL. С Windows в браузере обычно: **http://localhost:5000** (если Docker Desktop пробрасывает порты).
 
-| Секрет | Описание |
-|--------|----------|
-| `SERVER_HOST` | IP или hostname сервера |
-| `SERVER_USER` | Пользователь SSH на сервере |
-| `SERVER_SSH_KEY` | Приватный SSH-ключ для доступа к серверу |
-| `SERVER_PORT` | Порт SSH (обычно `22`) |
+Секреты **`SERVER_HOST` / `SERVER_USER` / `SERVER_SSH_KEY` / `SERVER_PORT` для текущего workflow не нужны** (они были для SSH-деплоя на удалённый сервер с **публичным** IP).
 
-Секреты `DOCKER_USERNAME` и `DOCKERHUB_TOKEN` в текущем workflow **не используются**: образ публикуется в **GitHub Container Registry** (ghcr.io) через `GITHUB_TOKEN`. Их можно оставить для будущей публикации в Docker Hub или удалить.
+### Секреты (опционально)
 
-Для подтягивания образа с ghcr.io на сервере можно использовать тот же `GITHUB_TOKEN` или создать Personal Access Token с правом `read:packages` и передать его в deploy-скрипт (при необходимости настройте переменную `GHCR_TOKEN` в секретах).
+Секреты `DOCKER_USERNAME` и `DOCKERHUB_TOKEN` в этом workflow **не используются**: образ публикуется в **ghcr.io** через `GITHUB_TOKEN`.
+
+Если позже понадобится деплой по SSH на VPS — нужен **публичный** `SERVER_HOST` и отдельная настройка шага `appleboy/ssh-action` в workflow.
 
 ## Деплой через Ansible
 
