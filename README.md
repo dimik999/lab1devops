@@ -40,9 +40,12 @@ docker run -p 5000:5000 lab1-app
 
 | Секрет | Описание |
 |--------|----------|
-| `DEPLOY_HOST` | IP или hostname сервера |
-| `DEPLOY_USER` | Пользователь SSH на сервере |
-| `DEPLOY_SSH_KEY` | Приватный SSH-ключ для доступа к серверу |
+| `SERVER_HOST` | IP или hostname сервера |
+| `SERVER_USER` | Пользователь SSH на сервере |
+| `SERVER_SSH_KEY` | Приватный SSH-ключ для доступа к серверу |
+| `SERVER_PORT` | Порт SSH (обычно `22`) |
+
+Секреты `DOCKER_USERNAME` и `DOCKERHUB_TOKEN` в текущем workflow **не используются**: образ публикуется в **GitHub Container Registry** (ghcr.io) через `GITHUB_TOKEN`. Их можно оставить для будущей публикации в Docker Hub или удалить.
 
 Для подтягивания образа с ghcr.io на сервере можно использовать тот же `GITHUB_TOKEN` или создать Personal Access Token с правом `read:packages` и передать его в deploy-скрипт (при необходимости настройте переменную `GHCR_TOKEN` в секретах).
 
