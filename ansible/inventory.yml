@@ -1,0 +1,11 @@
+# Пример inventory для Ansible
+# Замените YOUR_SERVER_IP на IP или hostname вашего сервера
+all:
+  children:
+    webservers:
+      hosts:
+        server1:
+          ansible_host: YOUR_SERVER_IP
+      vars:
+        registry: ghcr.io
+        image_name: YOUR_GITHUB_USER/lab1-app
