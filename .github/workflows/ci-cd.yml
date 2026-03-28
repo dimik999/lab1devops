@@ -67,11 +67,35 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # Деплой на машину с self-hosted runner (WSL/ПК с Docker). Из облака GitHub до внутреннего IP WSL по SSH не достучаться.
-  deploy:
+  # Удалённый сервер по SSH (задание: деплой на удалённый сервер, команды по SSH).
+  # Включение: Settings → Secrets and variables → Actions → Variables → DEPLOY_VIA_SSH = true
+  # Нужны секреты SERVER_HOST (публичный IP/DNS), SERVER_USER, SERVER_SSH_KEY, SERVER_PORT.
+  deploy-ssh:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' && vars.DEPLOY_VIA_SSH == 'true'
+    steps:
+      - name: Deploy via SSH (docker на удалённом сервере)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: ${{ secrets.SERVER_PORT }}
+          script: |
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
+            docker pull ${{ env.REGISTRY }}/${{ github.repository_owner }}/lab1-app:latest
+            docker stop lab1-app 2>/dev/null || true
+            docker rm lab1-app 2>/dev/null || true
+            docker run -d --name lab1-app -p 5000:5000 --restart unless-stopped ${{ env.REGISTRY }}/${{ github.repository_owner }}/lab1-app:latest
+        env:
+          REGISTRY: ${{ env.REGISTRY }}
+
+  # WSL / ПК без публичного IP: раннер у вас локально, SSH из облака до 172.x невозможен.
+  deploy-self-hosted:
     needs: build-and-push
     runs-on: self-hosted
-    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request' && vars.DEPLOY_VIA_SSH != 'true'
     permissions:
       contents: read
       packages: read
